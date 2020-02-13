@@ -1,15 +1,28 @@
-// Create API endpoints
-var API_quakes = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson"
-console.log (API_quakes)
+// Create API connections
 var API_plates = "https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json"
 console.log (API_plates)
+var API_quakes = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson"
+console.log (API_quakes)
 
+// Create the Tectonic layer
+var plates = new L.LayerGroup();
+
+// Loop and create lines
+d3.json(API_plates, function (geoJson) {
+    L.geoJSON(geoJson.features, {
+        style: function (geoJsonFeature) {
+            return {
+                color: 'firebrick',
+                weight: 2
+            }
+        },
+    }).addTo(plates);
+})
+// Create the Earthquakes layer
+var earthquakes = new L.LayerGroup();
 function markerSize(magnitude) {
     return magnitude * 5;
 };
-
-// Create the Earthquakes layer
-var earthquakes = new L.LayerGroup();
 
 // Loop and create circles
 d3.json(API_quakes, function (geoJson) {
@@ -17,13 +30,12 @@ d3.json(API_quakes, function (geoJson) {
         pointToLayer: function (geoJsonPoint, latlng) {
             return L.circleMarker(latlng, { radius: markerSize(geoJsonPoint.properties.mag) });
         },
-
         style: function (geoJsonFeature) {
             return {
-                fillColor: Color(geoJsonFeature.properties.mag),
-                fillOpacity: 0.7,
+                color: 'grey',
                 weight: 0.4,
-                color: 'grey'
+                fillColor: Color(geoJsonFeature.properties.mag),
+                fillOpacity: 0.7
             }
         },
         // Create the popup
@@ -35,21 +47,6 @@ d3.json(API_quakes, function (geoJson) {
     }).addTo(earthquakes);
     createMap(earthquakes);
 });
-
-// Create the Tectonic layer
-var plates = new L.LayerGroup();
-
-// Loop and create lines
-d3.json(API_plates, function (geoJson) {
-    L.geoJSON(geoJson.features, {
-        style: function (geoJsonFeature) {
-            return {
-                weight: 2,
-                color: 'firebrick'
-            }
-        },
-    }).addTo(plates);
-})
 
 // Add colors to reflect the degree of earthquake maginitude
 function Color(magnitude) {
@@ -70,55 +67,49 @@ function Color(magnitude) {
 
 // Create the layer map view options
 function createMap() {
-    // High Contrast Option
-    var highContrastMap = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
-        attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
-        maxZoom: 18,
-        id: 'mapbox.high-contrast',
-        accessToken: API_KEY
-    });
     // Street Option
     var streetMap = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
         attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
-        maxZoom: 18,
         id: 'mapbox.streets',
-        accessToken: API_KEY
-    });
-    // Dark Option
-    var darkMap = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
-        attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
-        maxZoom: 18,
-        id: 'mapbox.dark',
         accessToken: API_KEY
     });
     // Satellite Option
     var satellite = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
         attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
-        maxZoom: 18,
         id: 'mapbox.satellite',
+        accessToken: API_KEY
+    });
+    // Dark Option
+    var darkMap = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+        attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+        id: 'mapbox.dark',
+        accessToken: API_KEY
+    });
+       // High Contrast Option
+       var highContrastMap = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+        attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+        id: 'mapbox.high-contrast',
         accessToken: API_KEY
     });
 
     // Call the layer options
     var baseLayers = {
-        "High Contrast": highContrastMap,
         "Street": streetMap,
+        "Satellite": satellite,
         "Dark": darkMap,
-        "Satellite": satellite
+        "High Contrast": highContrastMap   
     };
-
     var overlays = {
-        "Earthquakes": earthquakes,
         "Plate Boundaries": plates,
+        "Earthquakes": earthquakes,
     };
 
     // Call the initial backgroup map and load default layers
     var mymap = L.map('mymap', {
         center: [40, -100],
         zoom: 5,
-        layers: [streetMap, earthquakes, plates]
+        layers: [streetMap, earthquakes]
     });
-
     L.control.layers(baseLayers, overlays).addTo(mymap);
 
     // Create the legend in the bottom right
